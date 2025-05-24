@@ -1,3 +1,21 @@
+## how to take the input
+```go
+package main
+
+import "fmt"
+
+func main(){
+    fmt.Println("Enter your name")
+    reader:=bufio.NewReader(os.Stdin)
+
+    input,_:=reader.ReadString('\n')
+    fmt.Println("your name is ",input)
+
+}
+```
+
+## how to do the conversion
+```go
 package main
 
 import (
@@ -26,3 +44,4 @@ func main(){
 	}
 
 }
+```
