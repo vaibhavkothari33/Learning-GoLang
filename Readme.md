@@ -118,3 +118,78 @@ func main() {
 	fmt.Println("the new value is",*ptr) // 46
 }
 ```
+
+## arrays in Golang no need to loop just print for direct array
+```go
+
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("The arrays in go lang")
+
+	var fruitlist [4] string
+
+	fruitlist[0] = "Apple"
+	fruitlist[1] = "Mango"
+	// fruitlist[2] = ""
+	fruitlist[3] = "Banana"
+
+	fmt.Println("Fruit list is ", fruitlist) // Fruit list is  [Apple Mango (space) Banana]
+
+	fmt.Println("The length of the fruitlist is ",len(fruitlist)) // 4 but i only have 3 items
+
+	var vegList = [3] string{"Potato","Beans","Onion"}
+	
+	fmt.Println("Veg List is ",len(vegList))
+	fmt.Println("Veg List is ",vegList)
+	// fmt.Println("Veg List is ",vegList[5]) // out of bound
+	fmt.Println("Veg List is ",vegList[2])
+}
+```
+
+## Slices in go lang (more powerfull then array)
+
+```go
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+func main() {
+	fmt.Println("The use of slices in go lang")
+
+	var fruitlist = [] string{"Apple", "Banana","Grapes"}
+	fmt.Printf("Type of fruitlist is %T\n",fruitlist)
+	fmt.Println("The fruit list is ",fruitlist)
+
+	fruitlist = append(fruitlist, "Mango","Chicku") //same python what to  add
+	fmt.Println("the new fruitlist is ",fruitlist)
+
+	// fruitlist = append(fruitlist[1:])
+	fruitlist =append(fruitlist[:])
+	// fruitlist =append(fruitlist[:3])
+	// fruitlist = append(fruitlist[1:3]) // print 1 and 2 nd value
+	fmt.Println("the new list is",fruitlist)
+
+	// new() and make()
+
+	highScores:= make([]int,4)
+	highScores[0] = 234
+	highScores[1] = 976
+	highScores[2] = 123
+	highScores[3] = 567
+
+	highScores  = append(highScores, 555,666,321) // [234 976 123 45 555 666 321]
+	fmt.Println(highScores)
+
+	fmt.Println(sort.IntsAreSorted(highScores))
+	sort.Ints(highScores)
+
+	fmt.Println("the sorted list is ",highScores)
+	fmt.Println(sort.IntsAreSorted(highScores))
+}
+```
