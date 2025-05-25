@@ -37,4 +37,15 @@ func main() {
 
 	fmt.Println("the sorted list is ",highScores)
 	fmt.Println(sort.IntsAreSorted(highScores))
+
+	// how to remove the value from slices
+
+	var courses = []string{"Reactjs","JavaScript","Swift","Python","Ruby"}
+	fmt.Println("The courses are" ,courses)
+	var index int =2
+	courses1 := append(courses[:index],courses[index+1:]...)
+	courses = append(courses[:2],courses[3:]...)  // [Reactjs JavaScript Python Ruby]
+	// courses = append(courses[:3])
+	fmt.Println(courses)
+	fmt.Println(courses1)
 }
