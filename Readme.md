@@ -226,3 +226,5 @@ func main() {
 	fmt.Println("List of all languages: ",languages)
 	}
 ```
+
+## there is no interiance in go lang and classes  no super parent
