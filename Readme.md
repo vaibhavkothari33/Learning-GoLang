@@ -228,3 +228,43 @@ func main() {
 ```
 
 ## there is no interiance in go lang and classes  no super parent
+
+
+# functions in go lang
+
+```go
+package main
+import "fmt"
+
+func greater(){
+	fmt.Println("Hello world")
+	result:=adder(3,5)
+	fmt.Println("the sum is",result)
+
+	proResult:= proAdder(2,5,4,8,8)
+	fmt.Println(proResult)
+}
+
+func adder(valOne int,valTwo int) int{
+	return valOne + valTwo
+}
+
+func proAdder(values ... int)int{
+	total := 0
+	for _,value:= range values{
+		total+=value
+	}
+	return total
+}
+func main() {
+	fmt.Println("Welcome to entry point in go lang")
+	greater()
+}
+```
+
+## loops
+```go
+for i,day:= range days{
+	fmt.Printf("index is %v and value is %v\n",i,day)
+}
+```
