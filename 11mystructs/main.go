@@ -8,6 +8,8 @@ func main() {
 	vaibhav:=User{"Vaibhav","Vaibhavkothari@go.dev",true,20}
 	fmt.Println("detail",vaibhav)
 	fmt.Printf("detail %T",vaibhav)
+	fmt.Println("")
+	fmt.Println(vaibhav.Email)
 
 }
 
