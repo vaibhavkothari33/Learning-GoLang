@@ -1,6 +1,7 @@
 # Boiler plate for go is pkmg
 
 ## how to take the input
+
 ```go
 package main
 
@@ -17,6 +18,7 @@ func main(){
 ```
 
 ## how to do the conversion
+
 ```go
 package main
 
@@ -64,7 +66,7 @@ func main() {
 	presentTime := time.Now()
 	fmt.Println(presentTime)
 	fmt.Println("Formated Time")
-	fmt.Println(presentTime.Format("01-02-2006 15:04:05 Monday")) 
+	fmt.Println(presentTime.Format("01-02-2006 15:04:05 Monday"))
 
 	createdDate:=time.Date(2020,time.January,19,23,23,0,0,time.UTC)
 	fmt.Println(createdDate)
@@ -75,10 +77,11 @@ func main() {
 ```
 
 # Memory allocation and deallocation happes automatically in go lang
+
 ```go
 new ()
 
-allocate memory but no init 
+allocate memory but no init
 you will get a memory address
 
 zeroes storage
@@ -86,7 +89,7 @@ zeroes storage
 
 ```go
 make()
-Allocate memory and init 
+Allocate memory and init
 you will get a memory address
 non zeroes storage
 ```
@@ -110,7 +113,7 @@ func main() {
 
 	// var ptr* int
 	// fmt.Println("The value of pointer is",ptr)
-	
+
 	myNumber:= 23
 
 	var ptr = &myNumber
@@ -122,6 +125,7 @@ func main() {
 ```
 
 ## arrays in Golang no need to loop just print for direct array
+
 ```go
 
 package main
@@ -143,7 +147,7 @@ func main() {
 	fmt.Println("The length of the fruitlist is ",len(fruitlist)) // 4 but i only have 3 items
 
 	var vegList = [3] string{"Potato","Beans","Onion"}
-	
+
 	fmt.Println("Veg List is ",len(vegList))
 	fmt.Println("Veg List is ",vegList)
 	// fmt.Println("Veg List is ",vegList[5]) // out of bound
@@ -195,7 +199,9 @@ func main() {
 	fmt.Println(sort.IntsAreSorted(highScores))
 }
 ```
+
 ## for each
+
 ```go
 	for key, value:=range languages{
 		fmt.Println(key,value)
@@ -227,10 +233,34 @@ func main() {
 	}
 ```
 
-## there is no interiance in go lang and classes  no super parent
-
+## there is no interiance in go lang and classes no super parent
 
 # functions in go lang
+
+✅ Public (Exported):
+Function name starts with an uppercase letter
+
+Accessible from other packages
+
+```go
+// Public function
+func PrintMessage() {
+    fmt.Println("This is a public function")
+}
+```
+
+❌ Private (Unexported):
+Function name starts with a lowercase letter
+
+Accessible only within the same package
+
+```go
+// Private function
+func printMessage() {
+    fmt.Println("This is a private function")
+}
+
+```
 
 ```go
 package main
@@ -263,8 +293,66 @@ func main() {
 ```
 
 ## loops
+
 ```go
 for i,day:= range days{
 	fmt.Printf("index is %v and value is %v\n",i,day)
+}
+```
+
+# parts of url
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/url"
+)
+
+const myurl string = "http://bennett.edu:3000/learn?coursename=btech&paymentid=skdjgjdhfkjghkfjdhdjkfhskhfkjshuyityi"
+
+// const myurl string = "https://bennett.edu.in"
+
+func main() {
+	fmt.Println("urls in golang")
+	fmt.Println("the url is ", myurl)
+
+	// parsing  the url
+	result, err := url.Parse(myurl) // url ko parse karo
+
+	// fmt.Println("protocal : ",result.Scheme)
+	// fmt.Println("host id/number :",result.Host)
+	// fmt.Println("Port number :",result.Port())
+	// fmt.Println("Path :",result.Path)
+	// fmt.Println("route :",result.RawQuery)
+	// fmt.Println("params :",result.RawPath)
+
+// 	protocal :  http
+// 	host id/number : bennett.edu:3000
+// 	Port number : 3000
+// 	Path : /learn
+// 	route : coursename=btech&paymentid=skdjgjdhfkjghkfjdhdjkfhskhfkjshuyityi
+// 	params :
+
+	qparams := result.Query()
+	fmt.Printf("the type of query params are: %T",qparams)
+	fmt.Println("")
+	fmt.Println(qparams["coursename"])
+
+
+	for _,val := range qparams{
+		fmt.Println("Params is ",val)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("the responce is ", result)
+
+	partsOfurl:= &url.URL{Scheme: "https",Host:"vaibhavkothari.me",Path:"/resume.pdf",RawPath: "user=vaibhav"}
+
+	anotherUrl:= partsOfurl.String()
+	fmt.Println(anotherUrl)
 }
 ```
