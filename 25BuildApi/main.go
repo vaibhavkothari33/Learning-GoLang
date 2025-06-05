@@ -129,6 +129,13 @@ func createOneCourse(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	for _, checkId := range courses {
+		if checkId.CourseId == course.CourseId {
+			json.NewEncoder(w).Encode("Course with same id already exist")
+			return
+		}
+	}
 	//generate the unique id,string
 
 	//append new courses
@@ -173,6 +180,7 @@ func deleteOneCourse(w http.ResponseWriter, r *http.Request) {
 	for index, course := range courses {
 		if course.CourseId == params["id"] {
 			courses = append(courses[:index], courses[index+1:]...)
+			json.NewEncoder(w).Encode("Delete course successfully")
 			break
 		}
 	}
