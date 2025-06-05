@@ -6,11 +6,10 @@ import (
 	"log"
 
 	"github.com/vaibhavkothari33/mongoapi/model"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const connectionString = "mongodb+srv://vaibhavkothari50:iZqTxT76IgSuoh9k@gobackend.jbas9pp.mongodb.net/"
@@ -33,7 +32,7 @@ func init() {
 	}
 	fmt.Println("Mongo DB connection Success")
 
-	collection = client.Database(dbName).collection(colName)
+	collection = client.Database(dbName).Collection(colName)
 
 	// instance
 	fmt.Println("collection instance is ready")
@@ -51,15 +50,15 @@ func insertOneMovie(movie model.Netflix) {
 }
 
 func updateOneRecord(moviedId string) {
-	id, err := primitive.ObjectIDFromHex // convert string into object id
+	id, err := primitive.ObjectIDFromHex(moviedId) // convert string into object id
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	filter := bson.M{"_id":id}
+	filter := bson.M{"_id": id}
 	update := bson.M{"$set": bson.M{"watched": true}}
 
-	result, err := collection.updateOne(context.Background(), filter, update)
+	result, err := collection.UpdateOne(context.Background(), filter, update)
 
 	if err != nil {
 		log.Fatal(err)
