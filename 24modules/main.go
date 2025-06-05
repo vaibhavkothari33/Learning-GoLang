@@ -15,7 +15,7 @@ func main() {
 	r.HandleFunc("/", serverHome).Methods("GET")
 	r.HandleFunc("/contact",serveContact).Methods("GET")
 	fmt.Println("http://localhost:1234")
-	fmt.Println("http://localhost:1234/contact")
+	fmt.Println("http://localhost:1234/contact")  
 
 	log.Fatal(http.ListenAndServe(":1234", r))
 }
