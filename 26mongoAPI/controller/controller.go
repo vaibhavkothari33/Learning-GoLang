@@ -97,6 +97,22 @@ func deleteAllMovies() int64 {
 	return deleteResult.DeletedCount
 }
 
+func getOneMovie(moviedId string) (bson.M, error){
+	id, err := primitive.ObjectIDFromHex(moviedId)
+	if err != nil {
+		log.Fatal(err)
+	}
+	filter := bson.M{"_id": id}
+	var movie bson.M
+	err = collection.FindOne(context.Background(), filter).Decode(&movie)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	// fmt.Println("Single movie is : ", getcount)
+	return movie,nil
+}
+
 func getAllMovies() []bson.M {
 	filter := bson.D{}
 	cursor, err := collection.Find(context.Background(), filter)
@@ -149,6 +165,21 @@ func MarkAsWatched(w http.ResponseWriter, r *http.Request) {
 	updateOneRecord(params["id"])
 	json.NewEncoder(w).Encode(params["id"])
 
+}
+func GetOneMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Allow-Control-Allow-Methods", "GET")
+
+	params := mux.Vars(r)
+	movieId :=params["id"]
+
+	movie,err := getOneMovie(movieId)
+	if err != nil{
+		log.Fatal(err)
+	}
+	json.NewEncoder(w).Encode(movie)
+	// getOneMovie(params["id"])
+	// json.NewEncoder(w).Encode(params["id"])
 }
 
 func DeleteAMovie(w http.ResponseWriter, r *http.Request) {
