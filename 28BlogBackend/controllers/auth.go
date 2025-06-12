@@ -3,11 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"githconfig/vaibhavkothari33/backendapi/config"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vaibhavkothari33/backendapi/config"
 	"github.com/vaibhavkothari33/backendapi/models"
 	"github.com/vaibhavkothari33/backendapi/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -106,305 +106,164 @@ func VerifyEmail(c *gin.Context) {
 			"verification_code": "",
 		},
 	}
-	result := userCollection.FindOneAndUpdate(ctx,filter,update)
-	if result.Err() !=nil{
-		if result.Err() == mongo.ErrNoDocuments{
-			c.JSON(http.StatusBadRequest,gin.H{"error":"Invalid verification code ot email"})
-		} else{
-			c.JSON(http.StatusInternalServerError,gin.H{"error":"Failed to verify email"})
+	result := userCollection.FindOneAndUpdate(ctx, filter, update)
+	if result.Err() != nil {
+		if result.Err() == mongo.ErrNoDocuments {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code ot email"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify email"})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK,gin.H{"message":"Email Verified successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Email Verified successfully"})
 }
 
+func Login(c *gin.Context) {
+	var req models.LoginRequest
 
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-// package controllers
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
-// import (
-//     "blog-backend/config"
-//     "blog-backend/models"
-//     "blog-backend/utils"
-//     "context"
-//     "net/http"
-//     "time"
+	defer cancel()
 
-//     "github.com/gin-gonic/gin"
-//     "go.mongodb.org/mongo-driver/bson"
-//     "go.mongodb.org/mongo-driver/bson/primitive"
-//     "go.mongodb.org/mongo-driver/mongo"
-// )
+	var user models.User
+	err := userCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Credentails"})
+		return
+	}
 
-// var userCollection = config.GetCollection("users")
+	if !user.IsVerified {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Please verify you email"})
+		return
+	}
 
-// // Register creates a new user account
-// func Register(c *gin.Context) {
-//     var user models.User
+	if err := utils.CheckPassword(user.Password, req.Password); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credential"})
+		return
+	}
 
-//     // Bind JSON to user struct
-//     if err := c.ShouldBindJSON(&user); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
+	token, err := utils.GenerateToken(user.ID, user.Username, user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
 
-//     // Check if user already exists
-//     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//     defer cancel()
+	user.Password = ""
+	user.VerificationCode = ""
 
-//     var existingUser models.User
-//     err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
-//     if err == nil {
-//         c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
-//         return
-//     }
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Login Successful",
+		"token":   token,
+		"user":    user,
+	})
+}
 
-//     // Hash password
-//     hashedPassword, err := utils.HashPassword(user.Password)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-//         return
-//     }
+func ForgotPassword(c *gin.Context) {
+	var req models.ForgotPasswordRequest
 
-//     // Generate verification code
-//     verificationCode := utils.GenerateVerificationCode()
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-//     // Create user object
-//     user.ID = primitive.NewObjectID()
-//     user.Password = hashedPassword
-//     user.IsVerified = false
-//     user.VerificationCode = verificationCode
-//     user.CreatedAt = time.Now()
-//     user.UpdatedAt = time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-//     // Insert user into database
-//     _, err = userCollection.InsertOne(ctx, user)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-//         return
-//     }
+	// Check if user exists
+	var user models.User
+	err := userCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&user)
+	if err != nil {
+		// Don't reveal if email exists or not for security
+		c.JSON(http.StatusOK, gin.H{"message": "If email exists, password reset link has been sent"})
+		return
+	}
 
-//     // Send verification email
-//     go func() {
-//         if err := utils.SendVerificationEmail(user.Email, verificationCode); err != nil {
-//             // Log error but don't fail the request
-//             // In production, you might want to use a proper logging system
-//             println("Failed to send verification email:", err.Error())
-//         }
-//     }()
+	// Generate reset token
+	resetToken := primitive.NewObjectID().Hex()
+	resetTokenExpiry := time.Now().Add(1 * time.Hour)
 
-//     // Remove sensitive data before responding
-//     user.Password = ""
-//     user.VerificationCode = ""
+	// Update user with reset token
+	update := bson.M{
+		"$set": bson.M{
+			"reset_token":        resetToken,
+			"reset_token_expiry": resetTokenExpiry,
+			"updated_at":         time.Now(),
+		},
+	}
 
-//     c.JSON(http.StatusCreated, gin.H{
-//         "message": "User created successfully. Please check your email for verification code.",
-//         "user":    user,
-//     })
-// }
+	_, err = userCollection.UpdateOne(ctx, bson.M{"email": req.Email}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process request"})
+		return
+	}
 
-// // VerifyEmail verifies user's email with the code
-// func VerifyEmail(c *gin.Context) {
-//     var req models.VerifyRequest
+	// Send reset email
+	go func() {
+		if err := utils.SendPasswordResetEmail(user.Email, resetToken); err != nil {
+			println("Failed to send password reset email:", err.Error())
+		}
+	}()
 
-//     if err := c.ShouldBindJSON(&req); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
+	c.JSON(http.StatusOK, gin.H{"message": "If email exists, password reset link has been sent"})
+}
 
-//     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//     defer cancel()
+// ResetPassword resets user password with token
+func ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
 
-//     // Find user and verify code
-//     filter := bson.M{
-//         "email":             req.Email,
-//         "verification_code": req.Code,
-//         "is_verified":       false,
-//     }
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-//     update := bson.M{
-//         "$set": bson.M{
-//             "is_verified":       true,
-//             "updated_at":        time.Now(),
-//         },
-//         "$unset": bson.M{
-//             "verification_code": "",
-//         },
-//     }
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-//     result := userCollection.FindOneAndUpdate(ctx, filter, update)
-//     if result.Err() != nil {
-//         if result.Err() == mongo.ErrNoDocuments {
-//             c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification code or email"})
-//         } else {
-//             c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify email"})
-//         }
-//         return
-//     }
+	// Find user with valid reset token
+	filter := bson.M{
+		"reset_token": req.Token,
+		"reset_token_expiry": bson.M{
+			"$gt": time.Now(),
+		},
+	}
 
-//     c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
-// }
+	var user models.User
+	err := userCollection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired reset token"})
+		return
+	}
 
-// // Login authenticates user and returns JWT token
-// func Login(c *gin.Context) {
-//     var req models.LoginRequest
+	// Hash new password
+	hashedPassword, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
 
-//     if err := c.ShouldBindJSON(&req); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
+	// Update password and remove reset token
+	update := bson.M{
+		"$set": bson.M{
+			"password":   hashedPassword,
+			"updated_at": time.Now(),
+		},
+		"$unset": bson.M{
+			"reset_token":        "",
+			"reset_token_expiry": "",
+		},
+	}
 
-//     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//     defer cancel()
+	_, err = userCollection.UpdateOne(ctx, bson.M{"_id": user.ID}, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
 
-//     // Find user by email
-//     var user models.User
-//     err := userCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&user)
-//     if err != nil {
-//         c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-//         return
-//     }
-
-//     // Check if email is verified
-//     if !user.IsVerified {
-//         c.JSON(http.StatusUnauthorized, gin.H{"error": "Please verify your email first"})
-//         return
-//     }
-
-//     // Check password
-//     if err := utils.CheckPassword(user.Password, req.Password); err != nil {
-//         c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-//         return
-//     }
-
-//     // Generate JWT token
-//     token, err := utils.GenerateToken(user.ID, user.Email, user.Username)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-//         return
-//     }
-
-//     // Remove sensitive data
-//     user.Password = ""
-//     user.VerificationCode = ""
-
-//     c.JSON(http.StatusOK, gin.H{
-//         "message": "Login successful",
-//         "token":   token,
-//         "user":    user,
-//     })
-// }
-
-// // ForgotPassword sends password reset email
-// func ForgotPassword(c *gin.Context) {
-//     var req models.ForgotPasswordRequest
-
-//     if err := c.ShouldBindJSON(&req); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
-
-//     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//     defer cancel()
-
-//     // Check if user exists
-//     var user models.User
-//     err := userCollection.FindOne(ctx, bson.M{"email": req.Email}).Decode(&user)
-//     if err != nil {
-//         // Don't reveal if email exists or not for security
-//         c.JSON(http.StatusOK, gin.H{"message": "If email exists, password reset link has been sent"})
-//         return
-//     }
-
-//     // Generate reset token
-//     resetToken := primitive.NewObjectID().Hex()
-//     resetTokenExpiry := time.Now().Add(1 * time.Hour)
-
-//     // Update user with reset token
-//     update := bson.M{
-//         "$set": bson.M{
-//             "reset_token":        resetToken,
-//             "reset_token_expiry": resetTokenExpiry,
-//             "updated_at":         time.Now(),
-//         },
-//     }
-
-//     _, err = userCollection.UpdateOne(ctx, bson.M{"email": req.Email}, update)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process request"})
-//         return
-//     }
-
-//     // Send reset email
-//     go func() {
-//         if err := utils.SendPasswordResetEmail(user.Email, resetToken); err != nil {
-//             println("Failed to send password reset email:", err.Error())
-//         }
-//     }()
-
-//     c.JSON(http.StatusOK, gin.H{"message": "If email exists, password reset link has been sent"})
-// }
-
-// // ResetPassword resets user password with token
-// func ResetPassword(c *gin.Context) {
-//     var req models.ResetPasswordRequest
-
-//     if err := c.ShouldBindJSON(&req); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
-
-//     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//     defer cancel()
-
-//     // Find user with valid reset token
-//     filter := bson.M{
-//         "reset_token": req.Token,
-//         "reset_token_expiry": bson.M{
-//             "$gt": time.Now(),
-//         },
-//     }
-
-//     var user models.User
-//     err := userCollection.FindOne(ctx, filter).Decode(&user)
-//     if err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired reset token"})
-//         return
-//     }
-
-//     // Hash new password
-//     hashedPassword, err := utils.HashPassword(req.NewPassword)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-//         return
-//     }
-
-//     // Update password and remove reset token
-//     update := bson.M{
-//         "$set": bson.M{
-//             "password":   hashedPassword,
-//             "updated_at": time.Now(),
-//         },
-//         "$unset": bson.M{
-//             "reset_token":        "",
-//             "reset_token_expiry": "",
-//         },
-//     }
-
-//     _, err = userCollection.UpdateOne(ctx, bson.M{"_id": user.ID}, update)
-//     if err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
-//         return
-//     }
-
-//     c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
-// }
-
-// // Logout (client-side token removal, but we can add token blacklisting here)
-// func Logout(c *gin.Context) {
-//     // In a simple JWT implementation, logout is handled client-side by removing the token
-//     // For more security, you could implement token blacklisting here
-//     c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
-// }
-// ```
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
